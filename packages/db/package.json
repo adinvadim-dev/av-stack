@@ -1,0 +1,27 @@
+{
+  "name": "@av-stack/db",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "lint": "oxlint --deny-warnings ."
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.1",
+    "postgres": "^3.4.7"
+  },
+  "devDependencies": {
+    "@av-stack/typescript-config": "workspace:*",
+    "drizzle-kit": "^0.31.1",
+    "@types/node": "^22.16.1",
+    "oxlint": "^1.47.0",
+    "typescript": "^5.8.3"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "@av-stack/typescript-config",
+  "private": true,
+  "version": "0.0.0",
+  "files": ["base.json", "react.json"]
+}
