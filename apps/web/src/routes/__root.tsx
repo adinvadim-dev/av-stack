@@ -9,6 +9,8 @@ import {
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import { useState } from "react";
+import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
 import { TRPCProvider } from "@/lib/trpc";
 import type { AppRouter } from "@/server/router";
 import appCss from "@/styles/globals.css?url";
@@ -40,7 +42,7 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "AV Stack — Production-Ready Monorepo Template" },
+      { title: "TypeScript Starter — Production-Ready Monorepo" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -64,9 +66,11 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
-        <RootDocument>
-          <Outlet />
-        </RootDocument>
+        <ThemeProvider>
+          <RootDocument>
+            <Outlet />
+          </RootDocument>
+        </ThemeProvider>
       </TRPCProvider>
     </QueryClientProvider>
   );
@@ -80,6 +84,7 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
       </head>
       <body className="min-h-screen bg-background font-sans antialiased">
         {children}
+        <Toaster />
         <Scripts />
       </body>
     </html>

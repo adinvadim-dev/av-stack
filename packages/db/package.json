@@ -5,7 +5,10 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./schema": "./src/schema.ts"
+    "./schema": "./src/schema.ts",
+    "./services/settings": "./src/services/settings.ts",
+    "./services/users": "./src/services/users.ts",
+    "./services/audit": "./src/services/audit.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -15,7 +18,8 @@
   },
   "dependencies": {
     "drizzle-orm": "^0.45.1",
-    "postgres": "^3.4.7"
+    "postgres": "^3.4.7",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@av-stack/typescript-config": "workspace:*",

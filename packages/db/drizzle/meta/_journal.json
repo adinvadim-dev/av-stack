@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1770904274622,
+      "tag": "0000_watery_network",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1770909817506,
+      "tag": "0001_superb_inhumans",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1770913530249,
+      "tag": "0002_melted_tarot",
+      "breakpoints": true
+    }
+  ]
+}

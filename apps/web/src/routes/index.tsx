@@ -10,7 +10,7 @@ export const Route = createFileRoute("/")({
 function HomePage() {
   const trpc = useTRPC();
   const stackQuery = useQuery(trpc.stack.queryOptions());
-  const helloQuery = useQuery(trpc.hello.queryOptions({ name: "AV Stack" }));
+  const helloQuery = useQuery(trpc.hello.queryOptions({ name: "TypeScript Starter" }));
 
   return (
     <div className="min-h-screen">

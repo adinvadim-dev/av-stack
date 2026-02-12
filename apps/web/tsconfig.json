@@ -1,19 +1,7 @@
 {
+  "extends": "@av-stack/typescript-config/react.json",
   "compilerOptions": {
-    "target": "ES2022",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "strict": true,
-    "noUncheckedIndexedAccess": true,
     "noEmit": true,
-    "skipLibCheck": true,
-    "jsx": "react-jsx",
-    "moduleDetection": "force",
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
