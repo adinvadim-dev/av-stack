@@ -9,9 +9,8 @@
       "dependsOn": ["^build"],
       "outputs": [".output/**", "dist/**"]
     },
-    "typecheck": {
-      "dependsOn": ["^build"]
-    },
+    "typecheck": {},
+
     "lint": {},
     "test": {},
     "db:generate": {
