@@ -26,4 +26,7 @@ Thumbs.db
 coverage/
 
 # Generated
+# Keep TanStack routeTree.gen.ts committed for CI/typecheck determinism.
+# Other generated files can remain ignored.
 *.gen.ts
+!apps/web/src/routeTree.gen.ts
