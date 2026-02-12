@@ -1,5 +1,6 @@
 import { protectedProcedure, publicProcedure, router, superuserProcedure, z } from "./trpc";
 import { DBAudit } from "@av-stack/db/services/audit";
+import { DBInvites } from "@av-stack/db/services/invites";
 import { DBSettings } from "@av-stack/db/services/settings";
 import { DBUsers } from "@av-stack/db/services/users";
 import {
@@ -40,6 +41,38 @@ export const appRouter = router({
 
   me: protectedProcedure.query(({ ctx }) => {
     return { user: ctx.user };
+  }),
+
+  auth: router({
+    registration: publicProcedure.query(async () => {
+      const allowSelfRegistration = await DBSettings.getBoolean("auth.allow_self_registration", true);
+
+      return {
+        allowSelfRegistration,
+      };
+    }),
+
+    inviteStatus: publicProcedure
+      .input(
+        z.object({
+          token: z.string().trim().min(1),
+        }),
+      )
+      .query(async ({ input }) => {
+        const invite = await DBInvites.getValidByToken(input.token);
+
+        if (!invite) {
+          return {
+            valid: false as const,
+          };
+        }
+
+        return {
+          valid: true as const,
+          email: invite.email,
+          expiresAt: invite.expiresAt.toISOString(),
+        };
+      }),
   }),
 
   account: router({
@@ -155,6 +188,95 @@ export const appRouter = router({
           user: updated,
         };
       }),
+
+    invites: router({
+      list: superuserProcedure.query(async () => {
+        const invites = await DBInvites.listForAdmin();
+
+        return {
+          items: invites.map((invite) => ({
+            id: invite.id,
+            email: invite.email,
+            role: invite.role,
+            token: invite.token,
+            expiresAt: invite.expiresAt.toISOString(),
+            createdAt: invite.createdAt.toISOString(),
+            usedAt: invite.usedAt?.toISOString() ?? null,
+            revokedAt: invite.revokedAt?.toISOString() ?? null,
+            usedByEmail: invite.usedByEmail,
+          })),
+        };
+      }),
+
+      create: superuserProcedure
+        .input(
+          z.object({
+            email: z.string().trim().email(),
+            expiresInDays: z.number().int().min(1).max(30).default(7),
+          }),
+        )
+        .mutation(async ({ ctx, input }) => {
+          const expiresAt = new Date(Date.now() + input.expiresInDays * 24 * 60 * 60 * 1000);
+          const invite = await DBInvites.create({
+            email: input.email,
+            createdByUserId: ctx.user.id,
+            expiresAt,
+          });
+
+          await DBAudit.insert({
+            category: "user",
+            action: "invite.create",
+            title: `Invite created: ${invite.email}`,
+            description: "Admin created a registration invite link",
+            actor: ctx.user.email,
+            metadata: {
+              inviteId: invite.id,
+              email: invite.email,
+              expiresAt: invite.expiresAt.toISOString(),
+            },
+          });
+
+          return {
+            invite: {
+              id: invite.id,
+              email: invite.email,
+              token: invite.token,
+              role: invite.role,
+              expiresAt: invite.expiresAt.toISOString(),
+              createdAt: invite.createdAt.toISOString(),
+            },
+          };
+        }),
+
+      revoke: superuserProcedure
+        .input(
+          z.object({
+            inviteId: z.string().min(1),
+          }),
+        )
+        .mutation(async ({ ctx, input }) => {
+          const invite = await DBInvites.revokeById(input.inviteId);
+
+          await DBAudit.insert({
+            category: "user",
+            action: "invite.revoke",
+            title: `Invite revoked: ${invite.email}`,
+            description: "Admin revoked a registration invite link",
+            actor: ctx.user.email,
+            metadata: {
+              inviteId: invite.id,
+              email: invite.email,
+            },
+          });
+
+          return {
+            invite: {
+              id: invite.id,
+              revokedAt: invite.revokedAt?.toISOString() ?? null,
+            },
+          };
+        }),
+    }),
 
     settings: router({
       list: superuserProcedure.query(async () => {

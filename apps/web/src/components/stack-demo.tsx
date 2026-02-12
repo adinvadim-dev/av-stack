@@ -92,7 +92,7 @@ export function StackDemo({ greeting, stackItems, isLoading }: StackDemoProps) {
           </Button>
         ) : (
           <Button asChild variant="outline">
-            <Link to="/auth">Sign in</Link>
+            <Link to="/auth" search={{ invite: undefined }}>Sign in</Link>
           </Button>
         )}
         <ThemeToggle withLabel />

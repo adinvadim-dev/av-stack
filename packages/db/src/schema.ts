@@ -61,6 +61,29 @@ export const appSetting = pgTable("app_setting", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const userInvite = pgTable(
+  "user_invite",
+  {
+    id: text("id").primaryKey(),
+    token: text("token").notNull().unique(),
+    email: text("email").notNull(),
+    role: userRoleEnum("role").notNull().default("user"),
+    createdByUserId: text("created_by_user_id")
+      .notNull()
+      .references(() => user.id),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    expiresAt: timestamp("expires_at").notNull(),
+    usedAt: timestamp("used_at"),
+    usedByUserId: text("used_by_user_id").references(() => user.id),
+    usedByEmail: text("used_by_email"),
+    revokedAt: timestamp("revoked_at"),
+  },
+  (table) => ({
+    inviteEmailIdx: index("user_invite_email_idx").on(table.email),
+    inviteExpiresAtIdx: index("user_invite_expires_at_idx").on(table.expiresAt),
+  }),
+);
+
 // ── audit log ───────────────────────────────────────────────────────
 export const auditLog = pgTable(
   "audit_log",

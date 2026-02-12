@@ -1,22 +1,53 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
+import { useTRPC } from "@/lib/trpc";
 
 export const Route = createFileRoute("/auth")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    invite: typeof search.invite === "string" ? search.invite : undefined,
+  }),
   component: AuthPage,
 });
 
 function AuthPage() {
+  const trpc = useTRPC();
   const navigate = useNavigate();
+  const { invite } = Route.useSearch();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  const registrationQuery = useQuery(trpc.auth.registration.queryOptions());
+  const inviteStatusQuery = useQuery({
+    ...trpc.auth.inviteStatus.queryOptions({ token: invite ?? "" }),
+    enabled: Boolean(invite),
+  });
+
+  const allowSelfRegistration = registrationQuery.data?.allowSelfRegistration ?? true;
+  const inviteInfo = inviteStatusQuery.data;
+  const hasInviteToken = Boolean(invite);
+  const hasValidInvite = inviteInfo?.valid === true;
+  const canSignUp = allowSelfRegistration || hasValidInvite;
+
+  useEffect(() => {
+    if (!allowSelfRegistration && hasInviteToken) {
+      setMode("signup");
+    }
+  }, [allowSelfRegistration, hasInviteToken]);
+
+  useEffect(() => {
+    if (inviteInfo?.valid && !email) {
+      setEmail(inviteInfo.email);
+    }
+  }, [inviteInfo, email]);
 
   const submit = async () => {
     if (!email || !password) {
@@ -29,10 +60,20 @@ function AuthPage() {
       return;
     }
 
+    if (mode === "signup" && !canSignUp) {
+      toast.error("Registration is available only by invite link");
+      return;
+    }
+
     await toast.promise(
       (mode === "signin"
         ? authClient.signIn.email({ email, password })
-        : authClient.signUp.email({ name: name.trim(), email, password }))
+        : authClient.signUp.email({
+            name: name.trim(),
+            email,
+            password,
+            ...(invite ? { inviteToken: invite } : {}),
+          }))
         .then(async (result) => {
           if (result.error) {
             throw new Error(result.error.message ?? "Authentication failed");
@@ -55,8 +96,17 @@ function AuthPage() {
           <CardDescription>
             {mode === "signin"
               ? "Use your credentials to access the admin area."
-              : "Create your first account to start using this starter."}
+              : canSignUp
+                ? "Create your first account to start using this starter."
+                : "Registration is disabled. Ask an admin for an invite link."}
           </CardDescription>
+          {hasInviteToken && (
+            <p className="text-sm text-muted-foreground">
+              {hasValidInvite
+                ? `Invite for ${inviteInfo.email}`
+                : "Invite link is invalid or expired"}
+            </p>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
           {mode === "signup" && (
@@ -84,10 +134,19 @@ function AuthPage() {
           <div className="flex items-center justify-between text-sm">
             <button
               type="button"
-              onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+              onClick={() => {
+                if (mode === "signin" && !allowSelfRegistration) {
+                  return;
+                }
+                setMode(mode === "signin" ? "signup" : "signin");
+              }}
               className="underline underline-offset-4"
             >
-              {mode === "signin" ? "Need an account? Sign up" : "Already have an account? Sign in"}
+              {mode === "signin"
+                ? allowSelfRegistration
+                  ? "Need an account? Sign up"
+                  : "Registration via invite only"
+                : "Already have an account? Sign in"}
             </button>
             <Link to="/" className="underline underline-offset-4">
               Back home

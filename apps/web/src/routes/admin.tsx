@@ -126,7 +126,7 @@ function AdminLayout() {
             <CardDescription>You need an account to open the admin panel.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Link to="/auth" className="text-sm underline underline-offset-4">
+            <Link to="/auth" search={{ invite: undefined }} className="text-sm underline underline-offset-4">
               Go to sign in
             </Link>
           </CardContent>

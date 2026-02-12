@@ -39,4 +39,21 @@ export const DBSettings = {
   remove(key: string) {
     return db.delete(appSetting).where(eq(appSetting.key, key));
   },
+
+  async getBoolean(key: string, defaultValue: boolean) {
+    const setting = await DBSettings.getByKey(key);
+    if (!setting) {
+      return defaultValue;
+    }
+
+    if (setting.value === "true") {
+      return true;
+    }
+
+    if (setting.value === "false") {
+      return false;
+    }
+
+    return defaultValue;
+  },
 };
