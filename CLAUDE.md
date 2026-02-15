@@ -21,6 +21,23 @@ export const DBSettings = {
 }
 ```
 
+## State Management
+
+- **Server state** (queries, mutations, cache) — React Query + tRPC. Do not replace with Zustand.
+- **Client UI state** (filters, drafts, selections, panel toggles) — Zustand stores in `apps/web/src/stores/`.
+- One store per feature area, e.g. `settings-draft.ts`, `audit-log.ts`.
+- Use selector syntax (`useStore((s) => s.field)`) to avoid unnecessary re-renders.
+- Keep stores flat and action-oriented:
+
+```ts
+export const useExampleStore = create<ExampleStore>()((set, get) => ({
+  filter: "",
+  setFilter: (v) => set({ filter: v }),
+}));
+```
+
+- Do not put server data into Zustand — let React Query own that.
+
 ## Quality Bar
 
 - Strict TypeScript types.

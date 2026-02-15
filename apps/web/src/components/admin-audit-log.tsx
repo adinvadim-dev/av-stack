@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import {
   ArrowUpRight,
   Search,
@@ -15,6 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { useAuditLogStore } from "@/stores/audit-log";
 
 // ─── Types ────────────────────────────────────────────────────────────
 
@@ -30,8 +31,6 @@ type AuditItem = {
 
 export interface AdminAuditLogProps {
   items: AuditItem[];
-  filter: "all" | "user" | "setting";
-  onFilterChange: (value: "all" | "user" | "setting") => void;
   totalCount: number;
 }
 
@@ -60,8 +59,14 @@ function formatTimestampFull(iso: string): string {
   });
 }
 
-function useAuditSearch(items: AuditItem[]) {
-  const [search, setSearch] = useState("");
+// ─── Main Exported Component (Stripe Design) ─────────────────────────
+
+export function AdminAuditLog({
+  items,
+  totalCount,
+}: AdminAuditLogProps) {
+  const { search, setSearch, filter, setFilter, selectedId, toggleSelectedId, setSelectedId } =
+    useAuditLogStore();
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -76,22 +81,6 @@ function useAuditSearch(items: AuditItem[]) {
         ),
     );
   }, [items, search]);
-
-  return { search, setSearch, filtered };
-}
-
-// ─── Main Exported Component (Stripe Design) ─────────────────────────
-// Inspired by Stripe Dashboard logs: clean data table with column sorting,
-// inline metadata expansion, chip-based filtering, and a detail panel.
-
-export function AdminAuditLog({
-  items,
-  filter,
-  onFilterChange,
-  totalCount,
-}: AdminAuditLogProps) {
-  const { search, setSearch, filtered } = useAuditSearch(items);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const selectedItem = filtered.find((i) => i.id === selectedId) ?? null;
 
@@ -121,7 +110,7 @@ export function AdminAuditLog({
               {(["all", "user", "setting"] as const).map((cat) => (
                 <button
                   key={cat}
-                  onClick={() => onFilterChange(cat)}
+                  onClick={() => setFilter(cat)}
                   className={cn(
                     "rounded-full px-3 py-1 text-xs font-medium transition-colors",
                     filter === cat
@@ -155,11 +144,7 @@ export function AdminAuditLog({
                       "cursor-pointer transition-colors",
                       selectedId === item.id && "bg-muted/50",
                     )}
-                    onClick={() =>
-                      setSelectedId(
-                        selectedId === item.id ? null : item.id,
-                      )
-                    }
+                    onClick={() => toggleSelectedId(item.id)}
                   >
                     <TableCell className="font-mono text-xs text-muted-foreground">
                       {formatTimestamp(item.at)}

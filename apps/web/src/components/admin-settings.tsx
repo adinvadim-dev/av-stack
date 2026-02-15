@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   ChevronRight,
   KeyRound,
@@ -24,6 +23,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import type { SystemSettingKey } from "@/lib/system-settings";
 import { cn } from "@/lib/utils";
+import { useSettingsDraftStore } from "@/stores/settings-draft";
 
 // ─── Types ────────────────────────────────────────────────────────────
 
@@ -46,12 +46,8 @@ type GroupedSettings = Record<string, SettingItem[]>;
 
 export interface AdminSettingsProps {
   groupedSettings: GroupedSettings;
-  settingsFilter: string;
-  onFilterChange: (value: string) => void;
   settingsCount: number;
   dirtySettingsCount: number;
-  getDraftValue: (key: SystemSettingKey, fallback: string) => string;
-  setDraftValue: (key: SystemSettingKey, value: string) => void;
   saveSetting: (key: SystemSettingKey, value: string) => Promise<void>;
   resetSetting: (key: SystemSettingKey, fallback: string) => Promise<void>;
   isSaving: boolean;
@@ -141,9 +137,11 @@ function SettingControl({
 
 function SettingsLayout(props: AdminSettingsProps) {
   const groups = Object.keys(props.groupedSettings);
-  const [activeGroup, setActiveGroup] = useState(groups[0] ?? "General");
+  const { activeGroup, setActiveGroup, getDraft, setDraft } = useSettingsDraftStore();
 
-  const currentItems = props.groupedSettings[activeGroup] ?? [];
+  // Fall back to first available group if current group has no items
+  const effectiveGroup = props.groupedSettings[activeGroup] ? activeGroup : (groups[0] ?? "General");
+  const currentItems = props.groupedSettings[effectiveGroup] ?? [];
 
   return (
     <div className="flex flex-col gap-6 md:flex-row">
@@ -156,7 +154,7 @@ function SettingsLayout(props: AdminSettingsProps) {
               onClick={() => setActiveGroup(group)}
               className={cn(
                 "flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors",
-                activeGroup === group
+                effectiveGroup === group
                   ? "bg-muted font-medium text-foreground"
                   : "text-muted-foreground hover:text-foreground"
               )}
@@ -166,7 +164,7 @@ function SettingsLayout(props: AdminSettingsProps) {
               <ChevronRight
                 className={cn(
                   "ml-auto size-3.5 transition-opacity",
-                  activeGroup === group ? "opacity-100" : "opacity-0"
+                  effectiveGroup === group ? "opacity-100" : "opacity-0"
                 )}
               />
             </button>
@@ -176,7 +174,7 @@ function SettingsLayout(props: AdminSettingsProps) {
 
       {/* Mobile select */}
       <div className="md:hidden">
-        <Select value={activeGroup} onValueChange={setActiveGroup}>
+        <Select value={effectiveGroup} onValueChange={setActiveGroup}>
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
@@ -193,8 +191,8 @@ function SettingsLayout(props: AdminSettingsProps) {
       {/* Content */}
       <div className="min-w-0 flex-1">
         <div className="mb-6 flex items-center gap-2 border-b pb-4">
-          {groupIcons[activeGroup]}
-          <h2 className="text-lg font-semibold">{activeGroup}</h2>
+          {groupIcons[effectiveGroup]}
+          <h2 className="text-lg font-semibold">{effectiveGroup}</h2>
           <Badge variant="secondary" className="ml-auto">
             {currentItems.length} settings
           </Badge>
@@ -202,7 +200,7 @@ function SettingsLayout(props: AdminSettingsProps) {
 
         <div className="space-y-8">
           {currentItems.map((setting) => {
-            const draft = props.getDraftValue(setting.key, setting.value);
+            const draft = getDraft(setting.key, setting.value);
             const isDirty = draft !== setting.value;
 
             return (
@@ -227,9 +225,7 @@ function SettingsLayout(props: AdminSettingsProps) {
                   <SettingControl
                     setting={setting}
                     draft={draft}
-                    onDraftChange={(v) =>
-                      props.setDraftValue(setting.key, v)
-                    }
+                    onDraftChange={(v) => setDraft(setting.key, v)}
                   />
                 </div>
 
@@ -277,6 +273,8 @@ function SettingsLayout(props: AdminSettingsProps) {
 // ─── Main Exported Component ──────────────────────────────────────────
 
 export function AdminSettings(props: AdminSettingsProps) {
+  const { filter, setFilter } = useSettingsDraftStore();
+
   return (
     <div className="space-y-6">
       {/* Filter + stats */}
@@ -284,8 +282,8 @@ export function AdminSettings(props: AdminSettingsProps) {
         <div className="relative max-w-md flex-1">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            value={props.settingsFilter}
-            onChange={(e) => props.onFilterChange(e.target.value)}
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
             placeholder="Filter settings..."
             className="pl-10"
           />
