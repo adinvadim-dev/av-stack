@@ -10,7 +10,6 @@
     "lint": "oxlint --deny-warnings .",
     "test": "vitest run",
     "setup:superuser": "tsx scripts/setup-superuser.ts",
-    "dev:setup-superuser": "tsx scripts/setup-superuser.ts admin@dev.local --password admin123 --name Admin",
     "clean": "rm -rf .output .vinxi dist node_modules/.vite"
   },
   "dependencies": {

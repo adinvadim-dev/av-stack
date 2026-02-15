@@ -1,30 +1,39 @@
 import { DBUsers } from "@av-stack/db/services/users";
 import { auth } from "@/lib/auth";
 
+const DEFAULT_EMAIL = "admin@dev.local";
+const DEFAULT_PASSWORD = "admin123";
+const DEFAULT_NAME = "Admin";
+
+function printHelp() {
+  console.log(`Usage: pnpm --filter @av-stack/web setup:superuser [-- <email> <password> [name]]
+
+Creates a superuser account. If the user already exists, promotes to superuser.
+
+Arguments:
+  email       Account email    (default: ${DEFAULT_EMAIL})
+  password    Account password  (default: ${DEFAULT_PASSWORD})
+  name        Display name      (default: ${DEFAULT_NAME})
+
+Examples:
+  pnpm --filter @av-stack/web setup:superuser
+  pnpm --filter @av-stack/web setup:superuser -- me@example.com secret123
+  pnpm --filter @av-stack/web setup:superuser -- me@example.com secret123 "My Name"`);
+}
+
 function parseArgs() {
   const args = process.argv.slice(2);
-  let email: string | undefined;
-  let password: string | undefined;
-  let name: string | undefined;
 
-  for (let i = 0; i < args.length; i++) {
-    const arg = args[i];
-    if (arg === "--password" || arg === "-p") {
-      password = args[++i];
-    } else if (arg === "--name" || arg === "-n") {
-      name = args[++i];
-    } else if (!email) {
-      email = arg;
-    }
+  if (args.includes("--help") || args.includes("-h")) {
+    printHelp();
+    process.exit(0);
   }
 
-  if (!email) {
-    throw new Error(
-      "Usage: pnpm --filter @av-stack/web setup:superuser -- <email> [--password <pass>] [--name <name>]",
-    );
-  }
-
-  return { email, password, name };
+  return {
+    email: args[0] ?? DEFAULT_EMAIL,
+    password: args[1] ?? DEFAULT_PASSWORD,
+    name: args[2] ?? DEFAULT_NAME,
+  };
 }
 
 async function main() {
@@ -33,19 +42,8 @@ async function main() {
   let existing = await DBUsers.getByEmail(email);
 
   if (!existing) {
-    if (!password) {
-      throw new Error(
-        `User with email ${email} not found. Provide --password to create a new account:\n` +
-          `  pnpm --filter @av-stack/web setup:superuser -- ${email} --password <pass>`,
-      );
-    }
-
     const result = await auth.api.signUpEmail({
-      body: {
-        email,
-        password,
-        name: name ?? email.split("@")[0],
-      },
+      body: { email, password, name },
     });
 
     if (!result.user) {
