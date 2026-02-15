@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { AdminSettings } from "@/components/admin-settings";
+import { AdminSettings, type AdminSettingsProps } from "@/components/admin-settings";
 import type { SystemSettingKey } from "@/lib/system-settings";
 import { useTRPC } from "@/lib/trpc";
+import { useSettingsDraftStore } from "@/stores/settings-draft";
 
 export const Route = createFileRoute("/admin/settings")({
   component: AdminSettingsPage,
@@ -18,8 +19,7 @@ function AdminSettingsPage() {
 
   const settingsQuery = useQuery(settingsQueryOptions);
 
-  const [settingsFilter, setSettingsFilter] = useState("");
-  const [draftValues, setDraftValues] = useState<Partial<Record<SystemSettingKey, string>>>({});
+  const { filter, drafts, setDraft } = useSettingsDraftStore();
 
   const upsertSettingMutation = useMutation(
     trpc.admin.settings.upsert.mutationOptions({
@@ -47,7 +47,7 @@ function AdminSettingsPage() {
 
   const groupedSettings = useMemo(() => {
     const items = settingsQuery.data?.items ?? [];
-    const normalizedFilter = settingsFilter.trim().toLowerCase();
+    const normalizedFilter = filter.trim().toLowerCase();
 
     const filtered = items.filter((setting) => {
       if (!normalizedFilter) {
@@ -61,32 +61,27 @@ function AdminSettingsPage() {
       );
     });
 
-    return filtered.reduce<Record<string, typeof filtered>>((groups, current) => {
-      const list = groups[current.group] ?? [];
-      list.push(current);
-      groups[current.group] = list;
+    return filtered.reduce<AdminSettingsProps["groupedSettings"]>((groups, current) => {
+      const group = current.group as string;
+      const list = groups[group] ?? [];
+      list.push(current as AdminSettingsProps["groupedSettings"][string][number]);
+      groups[group] = list;
       return groups;
     }, {});
-  }, [settingsFilter, settingsQuery.data?.items]);
+  }, [filter, settingsQuery.data?.items]);
 
   const dirtySettingsCount = (settingsQuery.data?.items ?? []).filter((setting) => {
-    const draft = draftValues[setting.key] ?? setting.value;
+    const draft = drafts[setting.key] ?? setting.value;
     return draft !== setting.value;
   }).length;
 
-  const setDraftValue = (key: SystemSettingKey, value: string) => {
-    setDraftValues((current) => ({ ...current, [key]: value }));
-  };
-
-  const getDraftValue = (key: SystemSettingKey, fallback: string) => {
-    return draftValues[key] ?? fallback;
-  };
-
   const saveSetting = async (key: SystemSettingKey, value: string) => {
-    const previousValue = settingsQuery.data?.items.find((s) => s.key === key)?.value;
+    const previousValue = settingsQuery.data?.items.find((s) => s.key === key)?.value as
+      | string
+      | undefined;
     await toast.promise(
       upsertSettingMutation.mutateAsync({ key, value }).then(() => {
-        setDraftValue(key, value);
+        setDraft(key, value);
       }),
       {
         loading: `Saving ${key}...`,
@@ -97,7 +92,7 @@ function AdminSettingsPage() {
               label: "Undo",
               onClick: () => {
                 upsertSettingMutation.mutate({ key, value: previousValue });
-                setDraftValue(key, previousValue);
+                setDraft(key, previousValue);
               },
             }
           : undefined,
@@ -106,10 +101,12 @@ function AdminSettingsPage() {
   };
 
   const resetSetting = async (key: SystemSettingKey, fallback: string) => {
-    const previousValue = settingsQuery.data?.items.find((s) => s.key === key)?.value;
+    const previousValue = settingsQuery.data?.items.find((s) => s.key === key)?.value as
+      | string
+      | undefined;
     await toast.promise(
       resetSettingMutation.mutateAsync({ key }).then(() => {
-        setDraftValue(key, fallback);
+        setDraft(key, fallback);
       }),
       {
         loading: `Resetting ${key}...`,
@@ -120,7 +117,7 @@ function AdminSettingsPage() {
               label: "Undo",
               onClick: () => {
                 upsertSettingMutation.mutate({ key, value: previousValue });
-                setDraftValue(key, previousValue);
+                setDraft(key, previousValue);
               },
             }
           : undefined,
@@ -131,12 +128,8 @@ function AdminSettingsPage() {
   return (
     <AdminSettings
       groupedSettings={groupedSettings}
-      settingsFilter={settingsFilter}
-      onFilterChange={setSettingsFilter}
       settingsCount={settingsCount}
       dirtySettingsCount={dirtySettingsCount}
-      getDraftValue={getDraftValue}
-      setDraftValue={setDraftValue}
       saveSetting={saveSetting}
       resetSetting={resetSetting}
       isSaving={upsertSettingMutation.isPending}
