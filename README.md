@@ -66,6 +66,14 @@ pnpm db:migrate
 pnpm init:template "App Name" "@scope"
 ```
 
+## Deploy (Nixpacks/Coolify)
+
+`nixpacks.toml` in repo root contains the default production setup:
+- Node.js `22`
+- `pnpm@10.28.2`
+- Build command: `pnpm --filter @av-stack/web build`
+- Start command: `cd apps/web && node server.mjs`
+
 ## Project Structure
 
 ```text

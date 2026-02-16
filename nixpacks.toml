@@ -1,0 +1,24 @@
+# =============================================================================
+# Nixpacks Configuration for Coolify
+# =============================================================================
+# This repo is a pnpm+turbo monorepo. The web app lives in `apps/web` and is
+# built with Vite + TanStack Start, served by `apps/web/server.mjs`.
+# =============================================================================
+
+[phases.setup]
+nixPkgs = ["nodejs_22"]
+
+[phases.install]
+cmds = ["npx -y pnpm@10.28.2 install --frozen-lockfile"]
+
+[phases.build]
+# Keep build scope small and match the Dockerfile.
+cmds = ["npx -y pnpm@10.28.2 --filter @av-stack/web build"]
+
+[start]
+cmd = "cd apps/web && node server.mjs"
+
+[start.environment]
+NODE_ENV = "production"
+HOST = "0.0.0.0"
+PORT = "3000"
