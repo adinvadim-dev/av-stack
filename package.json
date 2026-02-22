@@ -14,7 +14,8 @@
     "db:up": "docker compose up -d db",
     "db:down": "docker compose down",
     "init:template": "node scripts/init-template.mjs",
-    "clean": "turbo clean"
+    "clean": "turbo clean",
+    "setup:superuser": "pnpm --filter @av-stack/web setup:superuser --"
   },
   "packageManager": "pnpm@10.28.2",
   "devDependencies": {
