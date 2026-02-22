@@ -1,19 +1,40 @@
+import { auth } from "../src/lib/auth";
 import { DBUsers } from "@av-stack/db/services/users";
 
-function getTargetEmail() {
+function parseArgs() {
   const email = process.argv[2];
+  const password = process.argv[3];
 
-  if (!email) {
-    throw new Error("Usage: pnpm --filter @av-stack/web setup:superuser -- <email>");
+  if (!email || !password) {
+    throw new Error(
+      "Usage: pnpm setup:superuser <email> <password>",
+    );
   }
 
-  return email;
+  return { email, password };
 }
 
 async function main() {
-  const email = getTargetEmail();
-  const user = await DBUsers.promoteToSuperuserByEmail(email);
-  console.log(`Superuser granted: ${user.email} (${user.id})`);
+  const { email, password } = parseArgs();
+
+  const existing = await DBUsers.getByEmail(email);
+
+  if (existing) {
+    const promoted = await DBUsers.setRole(existing.id, "superuser");
+    console.log(`User already exists. Superuser granted: ${promoted.email} (${promoted.id})`);
+    return;
+  }
+
+  const result = await auth.api.signUpEmail({
+    body: { name: "Superuser", email, password },
+  });
+
+  if (!result.user) {
+    throw new Error("Failed to create user");
+  }
+
+  const promoted = await DBUsers.setRole(result.user.id, "superuser");
+  console.log(`User created and superuser granted: ${promoted.email} (${promoted.id})`);
 }
 
 main().catch((error: unknown) => {
